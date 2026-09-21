@@ -20,25 +20,45 @@ def get_bmi_category(bmi: float) -> str:
         return "重度肥胖"
 
 
+def calculate_ideal_weight_range(height_cm: float) -> tuple[float, float]:
+    """計算正常 BMI (18.5 ~ 24) 下的建議健康體重範圍 (kg)"""
+    height_m = height_cm / 100
+    min_weight = 18.5 * (height_m ** 2)
+    max_weight = 24.0 * (height_m ** 2)
+    return min_weight, max_weight
+
+
 def main():
-    print("Hello, World!\n")
-    print("=== BMI 計算器 ===")
+    print("========================================")
+    print("       Hello, World! 歡迎使用 BMI 系統    ")
+    print("========================================\n")
+    
     try:
-        height_input = input("請輸入身高 (cm): ")
-        weight_input = input("請輸入體重 (kg): ")
-        
+        height_input = input("請輸入身高 (cm): ").strip()
+        weight_input = input("請輸入體重 (kg): ").strip()
+
         height = float(height_input)
         weight = float(weight_input)
-        
+
+        if height <= 0 or weight <= 0:
+            print("\n[錯誤] 身高與體重必須大於 0！")
+            return
+
         bmi = calculate_bmi(height, weight)
         category = get_bmi_category(bmi)
-        
-        print(f"\n計算結果：")
+        min_w, max_w = calculate_ideal_weight_range(height)
+
+        print("\n----------- 計算結果 -----------")
+        print(f"您的身高: {height:.1f} cm")
+        print(f"您的體重: {weight:.1f} kg")
         print(f"BMI 指數: {bmi:.2f}")
-        print(f"判定結果: {category}")
+        print(f"體位判定: {category}")
+        print(f"建議健康體重範圍: {min_w:.1f} kg ~ {max_w:.1f} kg")
+        print("--------------------------------")
     except ValueError:
-        print("輸入錯誤：請輸入有效的數值。")
+        print("\n[錯誤] 請輸入有效的數值（整數或浮點數）。")
 
 
 if __name__ == "__main__":
     main()
+
