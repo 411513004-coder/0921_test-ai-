@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, List, Optional
 import config
+from services.knowledge_service import get_knowledge_context
 
 logger = logging.getLogger("line_bot")
 
@@ -31,8 +32,10 @@ def get_gemini_free_guide() -> str:
 
 def ask_gemini(user_id: str, prompt: str) -> str:
     """
-    呼叫 Google Gemini 免費模型 (gemini-2.5-flash) 生成繁體中文回覆
-    支援多輪對話記憶與異常防護
+    呼叫 Google Gemini 免費模型生成繁體中文回覆。
+    整合本地 RAG 知識庫：自動搜尋東華大學相關事實，
+    注入系統提示詞以修正 AI 幻覺，確保回答以正確資料為準。
+    支援多輪對話記憶與異常防護。
     """
     if not config.is_gemini_configured():
         return get_gemini_free_guide()
@@ -65,12 +68,31 @@ def ask_gemini(user_id: str, prompt: str) -> str:
             )
         )
 
-        system_instruction = (
-            "你是運行在 LINE 上的專業智慧助理，名叫「我的 AI 助理」。"
+        # ── RAG 知識庫搜尋 ──
+        # 根據使用者問題，自動從本地知識庫取出相關事實
+        knowledge_context = get_knowledge_context(prompt)
+        if knowledge_context:
+            logger.info(f"知識庫命中！為使用者 {user_id} 注入 {len(knowledge_context)} 字元的背景知識")
+
+        base_instruction = (
+            "你是運行在 LINE 上的專業智慧助理，名叫「我的 AI 助理」，"
+            "同時也是國立東華大學（NDHU）的校園助理，熟悉校園資訊。"
             "請一律使用台灣繁體中文（zh-TW）回答，語氣友善、專業、條理清晰。"
             "回答請針對手機通訊軟體的閱讀體驗排版，善用條列與適量表情符號，避免冗長空洞的套話。"
             "如果被問及技術、生活、摘要或規劃問題，請給出實用且準確的建議。"
         )
+
+        # 若有知識庫命中，強制附加到系統指令最前端
+        if knowledge_context:
+            system_instruction = (
+                knowledge_context + "\n\n"
+                "【重要指示】以上知識庫內容為已驗證的正確資料，"
+                "若知識庫資料與你的訓練資料有衝突，"
+                "請絕對以知識庫資料為準，不可忽略或矛盾。\n\n"
+                + base_instruction
+            )
+        else:
+            system_instruction = base_instruction
 
         # 呼叫 Gemini 免費模型 (優先 gemini-3.5-flash-lite，若繁忙切換 gemini-3.8-flash)
         model_name = "gemini-3.5-flash-lite"

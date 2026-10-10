@@ -68,6 +68,7 @@ async def health():
     return {"status": "ok"}
 
 @app.post("/callback")
+@app.post("/webhook")
 async def callback(request: Request, background_tasks: BackgroundTasks, x_line_signature: str = Header(None)):
     """
     接收 LINE Messaging API Webhook 事件的核心端點
