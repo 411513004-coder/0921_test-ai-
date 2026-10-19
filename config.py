@@ -11,6 +11,7 @@ LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "").strip()
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 PORT = int(os.getenv("PORT", "8000"))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GAS_FAQ_URL = os.getenv("GAS_FAQ_URL", "").strip()
 
 def is_configured() -> bool:
     """檢查 LINE 金鑰是否已完成設定"""
@@ -25,4 +26,9 @@ def is_gemini_configured() -> bool:
     if GEMINI_API_KEY in placeholders:
         return False
     return True
+
+def is_faq_configured() -> bool:
+    """檢查 Google 試算表 FAQ 網址是否已設定"""
+    return bool(GAS_FAQ_URL and GAS_FAQ_URL.startswith("http"))
+
 

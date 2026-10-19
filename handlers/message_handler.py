@@ -63,13 +63,35 @@ def register_message_handlers(handler):
                 quick_reply_items=["選單", "ping"]
             )
         else:
-            # 智能 AI 對話處理
-            ai_reply = ai_service.ask_gemini(user_id, user_text)
-            line_service.reply_text(
-                reply_token,
-                ai_reply,
-                quick_reply_items=["選單", "清除記憶", "ping"]
-            )
+            # ── 第一優先：查詢 Google 試算表 FAQ 知識資料庫 ──
+            from services.faq_client import search_faq
+            faq_result = search_faq(user_text)
+
+            if faq_result.get("found") and faq_result.get("answer"):
+                faq_answer = faq_result["answer"]
+                logger.info(f"直接回覆 Google 試算表 FAQ 答案 (無 AI 額度消耗)")
+                line_service.reply_text(
+                    reply_token,
+                    f"📖 【知識庫解答】\n{faq_answer}",
+                    quick_reply_items=["選單", "ping"]
+                )
+                return
+
+            # ── 第二優先：呼叫 Gemini AI 智慧備援 ──
+            try:
+                ai_reply = ai_service.ask_gemini(user_id, user_text)
+                line_service.reply_text(
+                    reply_token,
+                    ai_reply,
+                    quick_reply_items=["選單", "清除記憶", "ping"]
+                )
+            except Exception as e:
+                logger.error(f"AI 備援服務發生錯誤: {e}", exc_info=True)
+                line_service.reply_text(
+                    reply_token,
+                    "⚠️ 抱歉，目前 AI 備援服務繁忙或無法連線，請稍後再試。",
+                    quick_reply_items=["選單", "ping"]
+                )
 
     @handler.add(MessageEvent, message=ImageMessageContent)
     def handle_image_message(event: MessageEvent):
